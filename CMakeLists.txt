@@ -67,15 +67,23 @@ if(MSVC)
     xcheck_add_c_compiler_flag(/wd4018) # -Wno-sign-conversion
     xcheck_add_c_compiler_flag(/wd4061) # -Wno-implicit-fallthrough
     xcheck_add_c_compiler_flag(/wd4100) # -Wno-unused-parameter
+    xcheck_add_c_compiler_flag(/wd4127) # conditional expression is constant
+    xcheck_add_c_compiler_flag(/wd4132) # const object should be initialized
+    xcheck_add_c_compiler_flag(/wd4146) # unary minus operator applied to unsigned type, result still unsigned
     xcheck_add_c_compiler_flag(/wd4200) # -Wno-zero-length-array
     xcheck_add_c_compiler_flag(/wd4242) # -Wno-shorten-64-to-32
     xcheck_add_c_compiler_flag(/wd4244) # -Wno-shorten-64-to-32
     xcheck_add_c_compiler_flag(/wd4245) # -Wno-sign-compare
     xcheck_add_c_compiler_flag(/wd4267) # -Wno-shorten-64-to-32
+    xcheck_add_c_compiler_flag(/wd4334) # <<': result of 32-bit shift implicitly converted to 64 bits (was 64-bit shift intended?)
     xcheck_add_c_compiler_flag(/wd4388) # -Wno-sign-compare
     xcheck_add_c_compiler_flag(/wd4389) # -Wno-sign-compare
     xcheck_add_c_compiler_flag(/wd4456) # Hides previous local declaration
+    xcheck_add_c_compiler_flag(/wd4459) # declaration of '%s' hides global declaration
     xcheck_add_c_compiler_flag(/wd4457) # Hides function parameter
+    xcheck_add_c_compiler_flag(/wd4668) # '%s' is not defined as a preprocessor macro, replacing with '0' for '#if/#elif'
+    xcheck_add_c_compiler_flag(/wd4701) # potentially uninitialized local variable '%s' used
+    xcheck_add_c_compiler_flag(/wd4702) # Unreachable code
     xcheck_add_c_compiler_flag(/wd4710) # Function not inlined
     xcheck_add_c_compiler_flag(/wd4711) # Function was inlined
     xcheck_add_c_compiler_flag(/wd4820) # Padding added after construct
@@ -149,6 +157,7 @@ xoption(QJS_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
 xoption(QJS_ENABLE_MSAN "Enable MemorySanitizer (MSan)" OFF)
 xoption(QJS_ENABLE_TSAN "Enable ThreadSanitizer (TSan)" OFF)
 xoption(QJS_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
+xoption(QJS_BUILD_TOOLS "Build tools" OFF)
 
 if(QJS_ENABLE_ASAN)
 message(STATUS "Building with ASan")
@@ -283,81 +292,83 @@ endif()
 # QuickJS bytecode compiler
 #
 
-add_executable(qjsc
-    qjsc.c
-)
-add_qjs_libc_if_needed(qjsc)
-add_static_if_needed(qjsc)
-target_compile_definitions(qjsc PRIVATE ${qjs_defines})
-target_link_libraries(qjsc qjs)
-
-
-# QuickJS CLI
-#
-
-add_executable(qjs_exe
-    gen/repl.c
-    gen/standalone.c
-    qjs.c
-)
-add_qjs_libc_if_needed(qjs_exe)
-add_static_if_needed(qjs_exe)
-set_target_properties(qjs_exe PROPERTIES
-    OUTPUT_NAME "qjs"
-)
-target_compile_definitions(qjs_exe PRIVATE ${qjs_defines})
-target_link_libraries(qjs_exe qjs)
-if(NOT WIN32)
-    set_target_properties(qjs_exe PROPERTIES ENABLE_EXPORTS TRUE)
-endif()
-if(QJS_BUILD_CLI_WITH_MIMALLOC OR QJS_BUILD_CLI_WITH_STATIC_MIMALLOC)
-    find_package(mimalloc REQUIRED)
-    # Upstream mimalloc doesn't provide a way to know if both libraries are supported.
-    if(QJS_BUILD_CLI_WITH_STATIC_MIMALLOC)
-        target_link_libraries(qjs_exe mimalloc-static)
-    else()
-        target_link_libraries(qjs_exe mimalloc)
-    endif()
-endif()
-
-# Test262 runner
-#
-
-if(NOT EMSCRIPTEN)
-    add_executable(run-test262
-        run-test262.c
+if (QJS_BUILD_TOOLS)
+    add_executable(qjsc
+        qjsc.c
     )
-    add_qjs_libc_if_needed(run-test262)
-    target_compile_definitions(run-test262 PRIVATE ${qjs_defines})
-    target_link_libraries(run-test262 qjs)
+    add_qjs_libc_if_needed(qjsc)
+    add_static_if_needed(qjsc)
+    target_compile_definitions(qjsc PRIVATE ${qjs_defines})
+    target_link_libraries(qjsc qjs)
+
+
+    # QuickJS CLI
+    #
+
+    add_executable(qjs_exe
+        gen/repl.c
+        gen/standalone.c
+        qjs.c
+    )
+    add_qjs_libc_if_needed(qjs_exe)
+    add_static_if_needed(qjs_exe)
+    set_target_properties(qjs_exe PROPERTIES
+        OUTPUT_NAME "qjs"
+    )
+    target_compile_definitions(qjs_exe PRIVATE ${qjs_defines})
+    target_link_libraries(qjs_exe qjs)
+    if(NOT WIN32)
+        set_target_properties(qjs_exe PROPERTIES ENABLE_EXPORTS TRUE)
+    endif()
+    if(QJS_BUILD_CLI_WITH_MIMALLOC OR QJS_BUILD_CLI_WITH_STATIC_MIMALLOC)
+        find_package(mimalloc REQUIRED)
+        # Upstream mimalloc doesn't provide a way to know if both libraries are supported.
+        if(QJS_BUILD_CLI_WITH_STATIC_MIMALLOC)
+            target_link_libraries(qjs_exe mimalloc-static)
+        else()
+            target_link_libraries(qjs_exe mimalloc)
+        endif()
+    endif()
+
+    # Test262 runner
+    #
+
+    if(NOT EMSCRIPTEN)
+        add_executable(run-test262
+            run-test262.c
+        )
+        add_qjs_libc_if_needed(run-test262)
+        target_compile_definitions(run-test262 PRIVATE ${qjs_defines})
+        target_link_libraries(run-test262 qjs)
+    endif()
+
+    # Interrupt test
+    #
+
+    add_executable(api-test
+        api-test.c
+    )
+    target_compile_definitions(api-test PRIVATE ${qjs_defines})
+    target_link_libraries(api-test qjs)
+
+    # Unicode generator
+    #
+
+    add_executable(unicode_gen EXCLUDE_FROM_ALL
+        cutils.c
+        libunicode.c
+        unicode_gen.c
+    )
+    target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
+
+    add_executable(function_source
+        gen/function_source.c
+    )
+    add_qjs_libc_if_needed(function_source)
+    target_include_directories(function_source PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_compile_definitions(function_source PRIVATE ${qjs_defines})
+    target_link_libraries(function_source qjs)
 endif()
-
-# Interrupt test
-#
-
-add_executable(api-test
-    api-test.c
-)
-target_compile_definitions(api-test PRIVATE ${qjs_defines})
-target_link_libraries(api-test qjs)
-
-# Unicode generator
-#
-
-add_executable(unicode_gen EXCLUDE_FROM_ALL
-    cutils.c
-    libunicode.c
-    unicode_gen.c
-)
-target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
-
-add_executable(function_source
-    gen/function_source.c
-)
-add_qjs_libc_if_needed(function_source)
-target_include_directories(function_source PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_compile_definitions(function_source PRIVATE ${qjs_defines})
-target_link_libraries(function_source qjs)
 
 # Examples
 #
@@ -428,17 +439,20 @@ if(NOT IOS)
         VERSION ${QJS_VERSION_MAJOR}.${QJS_VERSION_MINOR}.${QJS_VERSION_PATCH}
         SOVERSION ${QJS_VERSION_MAJOR}
     )
+    install(TARGETS qjs LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(FILES quickjs.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     if(QJS_BUILD_LIBC)
         install(FILES quickjs-libc.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
-    install(TARGETS qjs_exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(TARGETS qjsc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-    install(TARGETS qjs EXPORT qjsConfig
-            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    install(EXPORT qjsConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickjs)
+    if (QJS_BUILD_TOOLS)
+        install(TARGETS qjs_exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(TARGETS qjsc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(TARGETS qjs EXPORT qjsConfig
+                RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+                LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        install(EXPORT qjsConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickjs)
+        install(DIRECTORY examples DESTINATION ${CMAKE_INSTALL_DOCDIR})
+    endif()
     install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DOCDIR})
-    install(DIRECTORY examples DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()

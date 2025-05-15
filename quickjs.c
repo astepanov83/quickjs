@@ -244,6 +244,7 @@ typedef struct JSValueLink {
 
 struct JSRuntime {
     JSMallocFunctions mf;
+    JSDumpFunction* df;
     JSMallocState malloc_state;
     const char *rt_info;
 
@@ -1905,6 +1906,11 @@ static const JSMallocFunctions def_malloc_funcs = {
 JSRuntime *JS_NewRuntime(void)
 {
     return JS_NewRuntime2(&def_malloc_funcs, NULL);
+}
+
+void JS_SetDumpFunction(JSRuntime* rt, JSDumpFunction* df)
+{
+    rt->df = df;
 }
 
 void JS_SetMemoryLimit(JSRuntime *rt, size_t limit)
@@ -20123,6 +20129,11 @@ enum {
     TOK_OF,     /* only used for js_parse_skip_parens_token() */
 };
 
+bool JS_IsStringToken(const JSToken* token)
+{
+    return token->val == TOK_STRING;
+}
+
 #define TOK_FIRST_KEYWORD   TOK_NULL
 #define TOK_LAST_KEYWORD    TOK_AWAIT
 
@@ -20314,31 +20325,6 @@ typedef struct JSFunctionDef {
     JSModuleDef *module; /* != NULL when parsing a module */
     bool has_await; /* true if await is used (used in module eval) */
 } JSFunctionDef;
-
-typedef struct JSToken {
-    int val;
-    int line_num;   /* line number of token start */
-    int col_num;    /* column number of token start */
-    const uint8_t *ptr;
-    union {
-        struct {
-            JSValue str;
-            int sep;
-        } str;
-        struct {
-            JSValue val;
-        } num;
-        struct {
-            JSAtom atom;
-            bool has_escape;
-            bool is_reserved;
-        } ident;
-        struct {
-            JSValue body;
-            JSValue flags;
-        } regexp;
-    } u;
-} JSToken;
 
 typedef struct JSParseState {
     JSContext *ctx;
@@ -21443,6 +21429,9 @@ static __exception int next_token(JSParseState *s)
     s->token.col_num = max_int(1, s->mark - s->eol);
     s->buf_ptr = p;
 
+    if (s->ctx->rt->df)
+      (*s->ctx->rt->df)(s->ctx, &s->token);
+
     //    dump_token(s, &s->token);
     return 0;
 
@@ -21746,6 +21735,9 @@ static __exception int json_next_token(JSParseState *s)
     }
     s->token.col_num = s->mark - s->eol;
     s->buf_ptr = p;
+
+    if (s->ctx->rt->df)
+        (*s->ctx->rt->df)(s->ctx, &s->token);
 
     //    dump_token(s, &s->token);
     return 0;
@@ -34971,6 +34963,14 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         free_token(s, &s->token);
         js_free_function_def(ctx, fd);
         goto fail1;
+    }
+
+    if (flags & JS_EVAL_PARSE_ONLY) {
+      free_token(s, &s->token);
+      js_free_function_def(ctx, fd);
+      if (m)
+        js_free_module_def(ctx, m);
+      return JS_NULL;
     }
 
     if (m != NULL)

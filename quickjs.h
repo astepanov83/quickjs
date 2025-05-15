@@ -390,6 +390,7 @@ static inline bool JS_VALUE_IS_NAN(JSValue v)
 /* allow top-level await in normal script. JS_Eval() returns a
    promise. Only allowed with JS_EVAL_TYPE_GLOBAL */
 #define JS_EVAL_FLAG_ASYNC (1 << 7)
+#define JS_EVAL_PARSE_ONLY (1 << 8)
 
 typedef JSValue JSCFunction(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv);
 typedef JSValue JSCFunctionMagic(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int magic);
@@ -426,6 +427,35 @@ typedef struct JSMallocFunctions {
 #define JS_DUMP_ATOMS         0x40000  /* dump atoms in JS_FreeRuntime */
 #define JS_DUMP_SHAPES        0x80000  /* dump shapes in JS_FreeRuntime */
 
+typedef struct JSToken {
+    int val;
+    int line_num;   /* line number of token start */
+    int col_num;    /* column number of token start */
+    const uint8_t *ptr;
+    union {
+        struct {
+            JSValue str;
+            int sep;
+        } str;
+        struct {
+            JSValue val;
+        } num;
+        struct {
+            JSAtom atom;
+            bool has_escape;
+            bool is_reserved;
+        } ident;
+        struct {
+            JSValue body;
+            JSValue flags;
+        } regexp;
+    } u;
+} JSToken;
+
+typedef void JSDumpFunction(JSContext* ctx, const JSToken* token);
+
+JS_EXTERN bool JS_IsStringToken(const JSToken* token);
+
 // Finalizers run in LIFO order at the very end of JS_FreeRuntime.
 // Intended for cleanup of associated resources; the runtime itself
 // is no longer usable.
@@ -434,6 +464,7 @@ typedef void JSRuntimeFinalizer(JSRuntime *rt, void *arg);
 typedef struct JSGCObjectHeader JSGCObjectHeader;
 
 JS_EXTERN JSRuntime *JS_NewRuntime(void);
+JS_EXTERN void JS_SetDumpFunction(JSRuntime* rt, JSDumpFunction* df);
 /* info lifetime must exceed that of rt */
 JS_EXTERN void JS_SetRuntimeInfo(JSRuntime *rt, const char *info);
 /* use 0 to disable memory limit */
