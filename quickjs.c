@@ -20131,7 +20131,7 @@ enum {
 
 bool JS_IsStringToken(const JSToken* token)
 {
-    return token->val == TOK_STRING;
+    return token->val == TOK_STRING || token->val == TOK_TEMPLATE;
 }
 
 #define TOK_FIRST_KEYWORD   TOK_NULL
