@@ -20134,6 +20134,65 @@ bool JS_IsStringToken(const JSToken* token)
     return token->val == TOK_STRING || token->val == TOK_TEMPLATE;
 }
 
+bool JS_IsJsOnlyToken(const JSToken* token)
+{
+    switch (token->val)
+    {
+        // JavaScript keywords
+        case TOK_IF: case TOK_ELSE: case TOK_RETURN: case TOK_VAR:
+        case TOK_LET: case TOK_CONST: case TOK_FUNCTION: case TOK_FOR:
+        case TOK_WHILE: case TOK_DO: case TOK_SWITCH: case TOK_CASE:
+        case TOK_DEFAULT: case TOK_THIS: case TOK_NEW: case TOK_DELETE:
+        case TOK_TYPEOF: case TOK_VOID: case TOK_IN: case TOK_INSTANCEOF:
+        case TOK_TRY: case TOK_CATCH: case TOK_THROW: case TOK_FINALLY:
+        case TOK_BREAK: case TOK_CONTINUE: case TOK_DEBUGGER: case TOK_WITH:
+        case TOK_CLASS: case TOK_EXPORT: case TOK_IMPORT: case TOK_EXTENDS:
+        case TOK_SUPER: case TOK_STATIC: case TOK_YIELD: case TOK_AWAIT:
+        case TOK_IMPLEMENTS: case TOK_INTERFACE: case TOK_PACKAGE:
+        case TOK_PRIVATE: case TOK_PROTECTED: case TOK_PUBLIC: case TOK_ENUM:
+        case TOK_OF:
+            return true;
+
+        // Assignment operators
+        case TOK_MUL_ASSIGN: case TOK_DIV_ASSIGN: case TOK_MOD_ASSIGN:
+        case TOK_PLUS_ASSIGN: case TOK_MINUS_ASSIGN: case TOK_SHL_ASSIGN:
+        case TOK_SAR_ASSIGN: case TOK_SHR_ASSIGN: case TOK_AND_ASSIGN:
+        case TOK_XOR_ASSIGN: case TOK_OR_ASSIGN: case TOK_POW_ASSIGN:
+        case TOK_LAND_ASSIGN: case TOK_LOR_ASSIGN: case TOK_DOUBLE_QUESTION_MARK_ASSIGN:
+            return true;
+
+        // Increment/Decrement
+        case TOK_DEC: case TOK_INC:
+            return true;
+
+        // Comparison operators
+        case TOK_LT: case TOK_LTE: case TOK_GT: case TOK_GTE:
+        case TOK_EQ: case TOK_STRICT_EQ: case TOK_NEQ: case TOK_STRICT_NEQ:
+            return true;
+
+        // Logical operators
+        case TOK_LAND: case TOK_LOR:
+            return true;
+
+        // Bitwise operators
+        case TOK_SHL: case TOK_SAR: case TOK_SHR: case TOK_POW:
+            return true;
+
+        // Modern JS operators
+        case TOK_ARROW: case TOK_ELLIPSIS: case TOK_DOUBLE_QUESTION_MARK:
+        case TOK_QUESTION_MARK_DOT:
+            return true;
+
+        // JS-specific literals
+        case TOK_TEMPLATE: case TOK_REGEXP: case TOK_PRIVATE_NAME:
+            return true;
+
+        default:
+            return false;
+    }
+}
+
+
 #define TOK_FIRST_KEYWORD   TOK_NULL
 #define TOK_LAST_KEYWORD    TOK_AWAIT
 

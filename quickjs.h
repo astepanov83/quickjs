@@ -455,7 +455,7 @@ typedef struct JSToken {
 typedef int JSDumpFunction(JSContext* ctx, const JSToken* token);
 
 JS_EXTERN bool JS_IsStringToken(const JSToken* token);
-
+JS_EXTERN bool JS_IsJsOnlyToken(const JSToken* token);
 // Finalizers run in LIFO order at the very end of JS_FreeRuntime.
 // Intended for cleanup of associated resources; the runtime itself
 // is no longer usable.
