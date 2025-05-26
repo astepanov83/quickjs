@@ -20184,7 +20184,7 @@ bool JS_IsJsOnlyToken(const JSToken* token)
             return true;
 
         // JS-specific literals
-        case TOK_TEMPLATE: case TOK_REGEXP: case TOK_PRIVATE_NAME:
+        case TOK_TEMPLATE: case TOK_REGEXP: case TOK_PRIVATE_NAME: case TOK_IDENT:
             return true;
 
         default:
