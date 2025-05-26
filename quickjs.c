@@ -21430,7 +21430,10 @@ static __exception int next_token(JSParseState *s)
     s->buf_ptr = p;
 
     if (s->ctx->rt->df)
-      (*s->ctx->rt->df)(s->ctx, &s->token);
+    {
+      if ((*s->ctx->rt->df)(s->ctx, &s->token) != 0)
+        goto fail;
+    }
 
     //    dump_token(s, &s->token);
     return 0;
@@ -21737,7 +21740,10 @@ static __exception int json_next_token(JSParseState *s)
     s->buf_ptr = p;
 
     if (s->ctx->rt->df)
-        (*s->ctx->rt->df)(s->ctx, &s->token);
+    {
+      if ((*s->ctx->rt->df)(s->ctx, &s->token) != 0)
+        goto fail;
+    }
 
     //    dump_token(s, &s->token);
     return 0;
