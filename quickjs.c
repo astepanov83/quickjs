@@ -21490,7 +21490,7 @@ static __exception int next_token(JSParseState *s)
 
     if (s->ctx->rt->df)
     {
-      if ((*s->ctx->rt->df)(s->ctx, &s->token) != 0)
+      if ((*s->ctx->rt->df)(s->ctx, &s->token, s->last_ptr - s->buf_start) != 0)
         goto fail;
     }
 
@@ -21800,7 +21800,7 @@ static __exception int json_next_token(JSParseState *s)
 
     if (s->ctx->rt->df)
     {
-      if ((*s->ctx->rt->df)(s->ctx, &s->token) != 0)
+      if ((*s->ctx->rt->df)(s->ctx, &s->token, s->last_ptr - s->buf_start) != 0)
         goto fail;
     }
 

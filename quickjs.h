@@ -452,7 +452,7 @@ typedef struct JSToken {
     } u;
 } JSToken;
 
-typedef int JSDumpFunction(JSContext* ctx, const JSToken* token);
+typedef int JSDumpFunction(JSContext* ctx, const JSToken* token, size_t location);
 
 JS_EXTERN bool JS_IsStringToken(const JSToken* token);
 JS_EXTERN bool JS_IsJsOnlyToken(const JSToken* token);
